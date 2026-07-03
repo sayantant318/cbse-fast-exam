@@ -603,7 +603,7 @@ label{display:block;margin-bottom:6px;font-weight:700;font-size:.9rem;}
 
 // Your Google Sheet CSV URL
 const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSfn_eRuycVBnpkly_ASRiNSohkNY_A8XE05cZVzV3_H8Onk0Nf2CahihY3Nu2sfBcN4FL5LOf1Wlgr/pub?gid=0&single=true&output=csv";
-
+const SIGNUP_API = "https://script.google.com/macros/s/AKfycbwOm63dLn7uIr8uTEuizbCUm7n1dv_oGi3l8UH2guxirrFghRv1ZI4JG_GL6rTGeTEusA/exec";
 /* ============================================================
    CHAPTER CONFIGURATIONS
    ============================================================ */
@@ -922,6 +922,22 @@ function doSignup(){
 
   users[user]={ name, username:user, email, cls, pw:hashPw(pw), joined:new Date().toISOString() };
   saveUsers(users);
+  // Save user to Google Sheet
+fetch(SIGNUP_API, {
+    method: "POST",
+    headers: {
+        "Content-Type": "text/plain;charset=utf-8"
+    },
+    body: JSON.stringify({
+        name: name,
+        username: user,
+        email: email,
+        classname: cls
+    })
+})
+.then(res => res.json())
+.then(data => console.log("User saved:", data))
+.catch(err => console.error("Signup save failed:", err));
 
   showAuthMsg('✅ Account created successfully! Logging you in...','success');
   setTimeout(()=>{ loginUser(users[user]); }, 800);
