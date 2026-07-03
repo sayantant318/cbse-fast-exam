@@ -928,12 +928,14 @@ fetch(SIGNUP_API, {
     headers: {
         "Content-Type": "text/plain;charset=utf-8"
     },
-    body: JSON.stringify({
-        name: name,
-        username: user,
-        email: email,
-        classname: cls
-    })
+body: JSON.stringify({
+    action: "signup",
+    name: name,
+    username: user,
+    email: email,
+    classname: cls,
+    password: pw
+})
 })
 .then(res => res.json())
 .then(data => console.log("User saved:", data))
