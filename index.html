@@ -898,10 +898,13 @@ function validEmail(e){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
 const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbwpPn4exhn5wwKdNvMS0Xmb0t-CK0A3IcleJg3TKqHSUTf0TCKEjK5X0u67Z8P5pDA/exec";
 
 function doSignup(){
-  clearAllErrs();
+  // FIXED: Changed clearAllErrs to use your exact functions from the HTML
+  clearSuErrs();
   const msgEl = document.getElementById('authMsg');
-  msgEl.className = 'auth-msg';
-  msgEl.style.display = 'none';
+  if(msgEl) {
+    msgEl.className = 'auth-msg';
+    msgEl.style.display = 'none';
+  }
 
   // Get inputs
   const fullName = document.getElementById('suName').value.trim();
@@ -925,14 +928,16 @@ function doSignup(){
   const passwordHash = hashPw(pw);
 
   // Disable button to prevent double-clicks
-  const btn = document.querySelector("#formSignup .auth-btn");
-  btn.disabled = true;
-  btn.textContent = "Registering...";
+  const btn = document.querySelector("#formSignup .auth-btn") || document.querySelector(".auth-btn");
+  if(btn) {
+    btn.disabled = true;
+    btn.textContent = "Registering...";
+  }
 
   // Send registration packet to your Google Sheet API
   fetch(SHEET_API_URL, {
     method: "POST",
-    mode: "no-cors", // Required to work around browser security blocks on redirection scripts
+    mode: "no-cors", 
     headers: {
       "Content-Type": "application/json"
     },
@@ -945,9 +950,11 @@ function doSignup(){
     })
   })
   .then(() => {
-    // Note: with "no-cors", Google doesn't return readable data, but treats the row injection as finished.
-    msgEl.textContent = "Registration Successful! You can now log in.";
-    msgEl.className = "auth-msg success";
+    if(msgEl) {
+      msgEl.textContent = "Registration Successful! You can now log in.";
+      msgEl.className = "auth-msg success";
+      msgEl.style.display = 'block';
+    }
     
     // Clear registration fields
     document.getElementById('suName').value = '';
@@ -960,12 +967,17 @@ function doSignup(){
     setTimeout(() => { switchTab('login'); }, 1500);
   })
   .catch(err => {
-    msgEl.textContent = "An error occurred during registration. Please check your network.";
-    msgEl.className = "auth-msg error";
+    if(msgEl) {
+      msgEl.textContent = "An error occurred during registration. Please check your network.";
+      msgEl.className = "auth-msg error";
+      msgEl.style.display = 'block';
+    }
   })
   .finally(() => {
-    btn.disabled = false;
-    btn.textContent = "📝 Create Account";
+    if(btn) {
+      btn.disabled = false;
+      btn.textContent = "📝 Create Account";
+    }
   });
 }
 
