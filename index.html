@@ -894,20 +894,17 @@ function checkStrength(pw){
 
 function validEmail(e){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
 
-/* --- Live Cloud Database Configuration --- */
+// Paste your copied Web App URL inside the quotation marks below!
 const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbwpPn4exhn5wwKdNvMS0Xmb0t-CK0A3IcleJg3TKqHSUTf0TCKEjK5X0u67Z8P5pDA/exec";
 
-/* --- 1. FIXED SIGNUP FUNCTION --- */
 function doSignup(){
-  clearAllErrs(); // Uses your exact function from the HTML
-  
+  clearAllErrs();
   const msgEl = document.getElementById('authMsg');
   if(msgEl) {
     msgEl.className = 'auth-msg';
     msgEl.style.display = 'none';
   }
 
-  // Get inputs using your exact IDs
   const fullName = document.getElementById('suName').value.trim();
   const username = document.getElementById('suUser').value.trim();
   const email = document.getElementById('suEmail').value.trim();
@@ -915,7 +912,6 @@ function doSignup(){
   const pw = document.getElementById('suPw').value;
   const pw2 = document.getElementById('suPw2').value;
 
-  // Form Validation
   let hasErr = false;
   if(!fullName) { showErr('suNameErr','Full Name is required'); hasErr=true; }
   if(!username) { showErr('suUserErr','Username is required'); hasErr=true; }
@@ -927,14 +923,13 @@ function doSignup(){
 
   const passwordHash = hashPw(pw);
 
-  // Target the signup button container accurately
   const btn = document.querySelector("#tab-signup .auth-btn") || document.querySelector(".auth-btn");
   if(btn) {
     btn.disabled = true;
     btn.textContent = "Registering...";
   }
 
-  // Submit to Google Sheet API
+  // Submit via standard POST to write to rows smoothly
   fetch(SHEET_API_URL, {
     method: "POST",
     mode: "no-cors", 
@@ -951,12 +946,11 @@ function doSignup(){
   })
   .then(() => {
     if(msgEl) {
-      msgEl.textContent = "Registration Successful! Shifting to Login...";
+      msgEl.textContent = "Registration Successful! Moving to Login...";
       msgEl.className = "auth-msg success";
       msgEl.style.display = 'block';
     }
     
-    // Clear inputs
     document.getElementById('suName').value = '';
     document.getElementById('suUser').value = '';
     document.getElementById('suEmail').value = '';
@@ -968,7 +962,7 @@ function doSignup(){
   })
   .catch(err => {
     if(msgEl) {
-      msgEl.textContent = "Connection issue. Please try again.";
+      msgEl.textContent = "Signup communication failed.";
       msgEl.className = "auth-msg error";
       msgEl.style.display = 'block';
     }
@@ -981,10 +975,8 @@ function doSignup(){
   });
 }
 
-/* --- 2. FIXED LOGIN FUNCTION --- */
 function doLogin(){
-  clearAllErrs(); 
-  
+  clearAllErrs();
   const msgEl = document.getElementById('authMsg');
   if(msgEl) {
     msgEl.className = 'auth-msg';
@@ -1005,32 +997,35 @@ function doLogin(){
     btn.textContent = "Verifying...";
   }
 
-  // Create a unique temporary global callback function for JSONP layout handling
+  // Cross-origin platform tracking bypass using dynamic JSONP script tags
   const callbackName = 'jsonp_login_' + Math.round(100000 * Math.random());
   
   window[callbackName] = function(data) {
-    // Clean up script and global memory trace once finished
+    // Clear dynamic bindings from DOM memory
     delete window[callbackName];
-    document.getElementById(callbackName).remove();
+    const scriptEl = document.getElementById(callbackName);
+    if(scriptEl) scriptEl.remove();
 
-    if (btn) btn.disabled = false;
+    if(btn) {
+      btn.disabled = false;
+      btn.textContent = "🔒 Login";
+    }
 
     if (data.status === "error") {
       msgEl.textContent = "Invalid username or password.";
       msgEl.className = "auth-msg error";
       msgEl.style.display = 'block';
-      if (btn) btn.textContent = "🔒 Login";
       return;
     }
     
     if (data.accountStatus === "Suspended") {
-      msgEl.textContent = "Account suspended. Contact admin.";
+      msgEl.textContent = "Account suspended. Contact administration.";
       msgEl.className = "auth-msg error";
       msgEl.style.display = 'block';
-      if (btn) btn.textContent = "🔒 Login";
       return;
     }
 
+    // Verify local password text scramble match
     const hashedAttempt = hashPw(pw);
     if (hashedAttempt === data.passwordHash) {
       localStorage.setItem(USER_SESSION_KEY, JSON.stringify({
@@ -1050,11 +1045,9 @@ function doLogin(){
       msgEl.textContent = "Invalid username or password.";
       msgEl.className = "auth-msg error";
       msgEl.style.display = 'block';
-      if (btn) btn.textContent = "🔒 Login";
     }
   };
 
-  // Inject script tag directly to fetch user verification smoothly across any platform device
   const script = document.createElement('script');
   script.id = callbackName;
   script.src = `${SHEET_API_URL}?username=${encodeURIComponent(user)}&callback=${callbackName}`;
@@ -1063,7 +1056,7 @@ function doLogin(){
       btn.disabled = false;
       btn.textContent = "🔒 Login";
     }
-    msgEl.textContent = "Network error. Please check your connection.";
+    msgEl.textContent = "Connection error. Check backend deployment.";
     msgEl.className = "auth-msg error";
     msgEl.style.display = 'block';
     delete window[callbackName];
@@ -1071,6 +1064,12 @@ function doLogin(){
   
   document.body.appendChild(script);
 }
+
+
+
+
+
+
 
 function loginUser(user){
   saveSession(user);
