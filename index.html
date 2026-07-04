@@ -894,19 +894,20 @@ function checkStrength(pw){
 
 function validEmail(e){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
 
-/* --- Live Signup Configuration --- */
+/* --- Live Cloud Database Configuration --- */
 const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbwpPn4exhn5wwKdNvMS0Xmb0t-CK0A3IcleJg3TKqHSUTf0TCKEjK5X0u67Z8P5pDA/exec";
 
+/* --- 1. FIXED SIGNUP FUNCTION --- */
 function doSignup(){
-  // FIXED: Changed clearAllErrs to use your exact functions from the HTML
-  clearSuErrs();
+  clearAllErrs(); // Uses your exact function from the HTML
+  
   const msgEl = document.getElementById('authMsg');
   if(msgEl) {
     msgEl.className = 'auth-msg';
     msgEl.style.display = 'none';
   }
 
-  // Get inputs
+  // Get inputs using your exact IDs
   const fullName = document.getElementById('suName').value.trim();
   const username = document.getElementById('suUser').value.trim();
   const email = document.getElementById('suEmail').value.trim();
@@ -914,7 +915,7 @@ function doSignup(){
   const pw = document.getElementById('suPw').value;
   const pw2 = document.getElementById('suPw2').value;
 
-  // Simple Frontend Validation
+  // Form Validation
   let hasErr = false;
   if(!fullName) { showErr('suNameErr','Full Name is required'); hasErr=true; }
   if(!username) { showErr('suUserErr','Username is required'); hasErr=true; }
@@ -924,17 +925,16 @@ function doSignup(){
 
   if(hasErr) return;
 
-  // Create password hash locally before sending to Google Sheets
   const passwordHash = hashPw(pw);
 
-  // Disable button to prevent double-clicks
-  const btn = document.querySelector("#formSignup .auth-btn") || document.querySelector(".auth-btn");
+  // Target the signup button container accurately
+  const btn = document.querySelector("#tab-signup .auth-btn") || document.querySelector(".auth-btn");
   if(btn) {
     btn.disabled = true;
     btn.textContent = "Registering...";
   }
 
-  // Send registration packet to your Google Sheet API
+  // Submit to Google Sheet API
   fetch(SHEET_API_URL, {
     method: "POST",
     mode: "no-cors", 
@@ -951,12 +951,12 @@ function doSignup(){
   })
   .then(() => {
     if(msgEl) {
-      msgEl.textContent = "Registration Successful! You can now log in.";
+      msgEl.textContent = "Registration Successful! Shifting to Login...";
       msgEl.className = "auth-msg success";
       msgEl.style.display = 'block';
     }
     
-    // Clear registration fields
+    // Clear inputs
     document.getElementById('suName').value = '';
     document.getElementById('suUser').value = '';
     document.getElementById('suEmail').value = '';
@@ -968,7 +968,7 @@ function doSignup(){
   })
   .catch(err => {
     if(msgEl) {
-      msgEl.textContent = "An error occurred during registration. Please check your network.";
+      msgEl.textContent = "Connection issue. Please try again.";
       msgEl.className = "auth-msg error";
       msgEl.style.display = 'block';
     }
@@ -981,22 +981,82 @@ function doSignup(){
   });
 }
 
+/* --- 2. FIXED LOGIN FUNCTION --- */
 function doLogin(){
-  clearAllErrs();
-  const id=document.getElementById('loginId').value.trim().toLowerCase();
-  const pw=document.getElementById('loginPw').value;
-  let ok=true;
-  if(!id){ showErr('loginIdErr','Username or email is required.'); ok=false; }
-  if(!pw){ showErr('loginPwErr','Password is required.'); ok=false; }
-  if(!ok) return;
+  clearAllErrs(); 
+  
+  const msgEl = document.getElementById('authMsg');
+  if(msgEl) {
+    msgEl.className = 'auth-msg';
+    msgEl.style.display = 'none';
+  }
 
-  const users=getUsers();
-  const user = users[id] || Object.values(users).find(u=>u.email===id);
-  if(!user){ showErr('loginIdErr','No account found with this username/email.'); return; }
-  if(user.pw !== hashPw(pw)){ showErr('loginPwErr','Incorrect password.'); return; }
+  // Fixed to use your exact HTML input IDs: loginId and loginPw
+  const user = document.getElementById('loginId').value.trim();
+  const pw = document.getElementById('loginPw').value;
 
-  showAuthMsg('✅ Login successful! Welcome back, '+user.name+'!','success');
-  setTimeout(()=>{ loginUser(user); }, 600);
+  let hasErr = false;
+  if(!user) { showErr('loginIdErr','Username or Email is required'); hasErr=true; }
+  if(!pw) { showErr('loginPwErr','Password is required'); hasErr=true; }
+  if(hasErr) return;
+
+  const btn = document.querySelector("#tab-login .auth-btn") || document.querySelector(".auth-btn");
+  if(btn) {
+    btn.disabled = true;
+    btn.textContent = "Verifying...";
+  }
+
+  // Fetch from Google Sheet database
+  fetch(`${SHEET_API_URL}?username=${encodeURIComponent(user)}`)
+    .then(res => res.json())
+    .then(data => {
+      if (data.status === "error") {
+        msgEl.textContent = "Invalid credentials.";
+        msgEl.className = "auth-msg error";
+        msgEl.style.display = 'block';
+        return;
+      }
+      
+      if (data.accountStatus === "Suspended") {
+        msgEl.textContent = "Account suspended. Contact admin.";
+        msgEl.className = "auth-msg error";
+        msgEl.style.display = 'block';
+        return;
+      }
+
+      const hashedAttempt = hashPw(pw);
+      if (hashedAttempt === data.passwordHash) {
+        // Save global session across multiple devices
+        localStorage.setItem(USER_SESSION_KEY, JSON.stringify({
+          fullName: data.fullName,
+          username: data.username,
+          email: data.email,
+          className: data.className,
+          plan: data.plan
+        }));
+        
+        msgEl.textContent = `Welcome, ${data.fullName}!`;
+        msgEl.className = "auth-msg success";
+        msgEl.style.display = 'block';
+        
+        setTimeout(() => { initAuth(); }, 1000);
+      } else {
+        msgEl.textContent = "Invalid credentials.";
+        msgEl.className = "auth-msg error";
+        msgEl.style.display = 'block';
+      }
+    })
+    .catch(err => {
+      msgEl.textContent = "Network error. Please check your connection.";
+      msgEl.className = "auth-msg error";
+      msgEl.style.display = 'block';
+    })
+    .finally(() => {
+      if(btn) {
+        btn.disabled = false;
+        btn.textContent = "🔒 Login";
+      }
+    });
 }
 
 function loginUser(user){
