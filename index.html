@@ -1028,19 +1028,34 @@ function doLogin(){
     // Verify local password text scramble match
     const hashedAttempt = hashPw(pw);
     if (hashedAttempt === data.passwordHash) {
-      localStorage.setItem(USER_SESSION_KEY, JSON.stringify({
+      // Create session payload exactly matching what your app expects
+      const sessionData = {
         fullName: data.fullName,
         username: data.username,
         email: data.email,
         className: data.className,
         plan: data.plan
-      }));
+      };
+
+      // Save global session across multiple devices
+      localStorage.setItem(USER_SESSION_KEY, JSON.stringify(sessionData));
       
       msgEl.textContent = `Welcome, ${data.fullName}!`;
       msgEl.className = "auth-msg success";
       msgEl.style.display = 'block';
       
-      setTimeout(() => { initAuth(); }, 1000);
+      // Clear inputs
+      document.getElementById('loginId').value = '';
+      document.getElementById('loginPw').value = '';
+      
+      // FIXED: Force immediate login redirection into the system layout
+      setTimeout(() => { 
+        document.getElementById('page-auth').style.display = 'none';
+        document.getElementById('appHeader').style.display = 'block';
+        applySession(sessionData);
+        showSubjectPage(sessionData);
+      }, 1000);
+      
     } else {
       msgEl.textContent = "Invalid username or password.";
       msgEl.className = "auth-msg error";
@@ -1064,11 +1079,6 @@ function doLogin(){
   
   document.body.appendChild(script);
 }
-
-
-
-
-
 
 
 function loginUser(user){
