@@ -997,87 +997,74 @@ function doLogin(){
     btn.textContent = "Verifying...";
   }
 
-  // Cross-origin platform tracking bypass using dynamic JSONP script tags
-  const callbackName = 'jsonp_login_' + Math.round(100000 * Math.random());
-  
-  window[callbackName] = function(data) {
-    // Clear dynamic bindings from DOM memory
-    delete window[callbackName];
-    const scriptEl = document.getElementById(callbackName);
-    if(scriptEl) scriptEl.remove();
+  // Cross-device compatible lookup approach using clean standard redirects
+  fetch(`${SHEET_API_URL}?username=${encodeURIComponent(user)}`)
+    .then(res => res.json())
+    .then(data => {
+      if(btn) btn.disabled = false;
 
-    if(btn) {
-      btn.disabled = false;
-      btn.textContent = "🔒 Login";
-    }
+      if (!data || data.status === "error") {
+        msgEl.textContent = "Invalid username or password.";
+        msgEl.className = "auth-msg error";
+        msgEl.style.display = 'block';
+        if (btn) btn.textContent = "🔒 Login";
+        return;
+      }
+      
+      if (data.accountStatus === "Suspended") {
+        msgEl.textContent = "Account suspended. Contact administration.";
+        msgEl.className = "auth-msg error";
+        msgEl.style.display = 'block';
+        if (btn) btn.textContent = "🔒 Login";
+        return;
+      }
 
-    if (data.status === "error") {
-      msgEl.textContent = "Invalid username or password.";
+      // Match hashed password values
+      const hashedAttempt = hashPw(pw);
+      if (hashedAttempt === data.passwordHash) {
+        const sessionData = {
+          fullName: data.fullName,
+          username: data.username,
+          email: data.email,
+          className: data.className,
+          plan: data.plan
+        };
+
+        localStorage.setItem(USER_SESSION_KEY, JSON.stringify(sessionData));
+        
+        msgEl.textContent = `Welcome, ${data.fullName}!`;
+        msgEl.className = "auth-msg success";
+        msgEl.style.display = 'block';
+        
+        document.getElementById('loginId').value = '';
+        document.getElementById('loginPw').value = '';
+        
+        setTimeout(() => { 
+          document.getElementById('page-auth').style.display = 'none';
+          document.getElementById('appHeader').style.display = 'block';
+          applySession(sessionData);
+          showSubjectPage(sessionData);
+        }, 1000);
+        
+      } else {
+        msgEl.textContent = "Invalid username or password.";
+        msgEl.className = "auth-msg error";
+        msgEl.style.display = 'block';
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = "🔒 Login";
+        }
+      }
+    })
+    .catch(err => {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = "🔒 Login";
+      }
+      msgEl.textContent = "Connection error. Please clear your mobile browser history and try again.";
       msgEl.className = "auth-msg error";
       msgEl.style.display = 'block';
-      return;
-    }
-    
-    if (data.accountStatus === "Suspended") {
-      msgEl.textContent = "Account suspended. Contact administration.";
-      msgEl.className = "auth-msg error";
-      msgEl.style.display = 'block';
-      return;
-    }
-
-    // Verify local password text scramble match
-    const hashedAttempt = hashPw(pw);
-    if (hashedAttempt === data.passwordHash) {
-      // Create session payload exactly matching what your app expects
-      const sessionData = {
-        fullName: data.fullName,
-        username: data.username,
-        email: data.email,
-        className: data.className,
-        plan: data.plan
-      };
-
-      // Save global session across multiple devices
-      localStorage.setItem(USER_SESSION_KEY, JSON.stringify(sessionData));
-      
-      msgEl.textContent = `Welcome, ${data.fullName}!`;
-      msgEl.className = "auth-msg success";
-      msgEl.style.display = 'block';
-      
-      // Clear inputs
-      document.getElementById('loginId').value = '';
-      document.getElementById('loginPw').value = '';
-      
-      // FIXED: Force immediate login redirection into the system layout
-      setTimeout(() => { 
-        document.getElementById('page-auth').style.display = 'none';
-        document.getElementById('appHeader').style.display = 'block';
-        applySession(sessionData);
-        showSubjectPage(sessionData);
-      }, 1000);
-      
-    } else {
-      msgEl.textContent = "Invalid username or password.";
-      msgEl.className = "auth-msg error";
-      msgEl.style.display = 'block';
-    }
-  };
-
-  const script = document.createElement('script');
-  script.id = callbackName;
-  script.src = `${SHEET_API_URL}?username=${encodeURIComponent(user)}&callback=${callbackName}`;
-  script.onerror = function() {
-    if (btn) {
-      btn.disabled = false;
-      btn.textContent = "🔒 Login";
-    }
-    msgEl.textContent = "Connection error. Check backend deployment.";
-    msgEl.className = "auth-msg error";
-    msgEl.style.display = 'block';
-    delete window[callbackName];
-  };
-  
-  document.body.appendChild(script);
+    });
 }
 
 
