@@ -991,7 +991,6 @@ function doLogin(){
     msgEl.style.display = 'none';
   }
 
-  // Fixed to use your exact HTML input IDs: loginId and loginPw
   const user = document.getElementById('loginId').value.trim();
   const pw = document.getElementById('loginPw').value;
 
@@ -1006,57 +1005,71 @@ function doLogin(){
     btn.textContent = "Verifying...";
   }
 
-  // Fetch from Google Sheet database
-  fetch(`${SHEET_API_URL}?username=${encodeURIComponent(user)}`)
-    .then(res => res.json())
-    .then(data => {
-      if (data.status === "error") {
-        msgEl.textContent = "Invalid credentials.";
-        msgEl.className = "auth-msg error";
-        msgEl.style.display = 'block';
-        return;
-      }
-      
-      if (data.accountStatus === "Suspended") {
-        msgEl.textContent = "Account suspended. Contact admin.";
-        msgEl.className = "auth-msg error";
-        msgEl.style.display = 'block';
-        return;
-      }
+  // Create a unique temporary global callback function for JSONP layout handling
+  const callbackName = 'jsonp_login_' + Math.round(100000 * Math.random());
+  
+  window[callbackName] = function(data) {
+    // Clean up script and global memory trace once finished
+    delete window[callbackName];
+    document.getElementById(callbackName).remove();
 
-      const hashedAttempt = hashPw(pw);
-      if (hashedAttempt === data.passwordHash) {
-        // Save global session across multiple devices
-        localStorage.setItem(USER_SESSION_KEY, JSON.stringify({
-          fullName: data.fullName,
-          username: data.username,
-          email: data.email,
-          className: data.className,
-          plan: data.plan
-        }));
-        
-        msgEl.textContent = `Welcome, ${data.fullName}!`;
-        msgEl.className = "auth-msg success";
-        msgEl.style.display = 'block';
-        
-        setTimeout(() => { initAuth(); }, 1000);
-      } else {
-        msgEl.textContent = "Invalid credentials.";
-        msgEl.className = "auth-msg error";
-        msgEl.style.display = 'block';
-      }
-    })
-    .catch(err => {
-      msgEl.textContent = "Network error. Please check your connection.";
+    if (btn) btn.disabled = false;
+
+    if (data.status === "error") {
+      msgEl.textContent = "Invalid username or password.";
       msgEl.className = "auth-msg error";
       msgEl.style.display = 'block';
-    })
-    .finally(() => {
-      if(btn) {
-        btn.disabled = false;
-        btn.textContent = "🔒 Login";
-      }
-    });
+      if (btn) btn.textContent = "🔒 Login";
+      return;
+    }
+    
+    if (data.accountStatus === "Suspended") {
+      msgEl.textContent = "Account suspended. Contact admin.";
+      msgEl.className = "auth-msg error";
+      msgEl.style.display = 'block';
+      if (btn) btn.textContent = "🔒 Login";
+      return;
+    }
+
+    const hashedAttempt = hashPw(pw);
+    if (hashedAttempt === data.passwordHash) {
+      localStorage.setItem(USER_SESSION_KEY, JSON.stringify({
+        fullName: data.fullName,
+        username: data.username,
+        email: data.email,
+        className: data.className,
+        plan: data.plan
+      }));
+      
+      msgEl.textContent = `Welcome, ${data.fullName}!`;
+      msgEl.className = "auth-msg success";
+      msgEl.style.display = 'block';
+      
+      setTimeout(() => { initAuth(); }, 1000);
+    } else {
+      msgEl.textContent = "Invalid username or password.";
+      msgEl.className = "auth-msg error";
+      msgEl.style.display = 'block';
+      if (btn) btn.textContent = "🔒 Login";
+    }
+  };
+
+  // Inject script tag directly to fetch user verification smoothly across any platform device
+  const script = document.createElement('script');
+  script.id = callbackName;
+  script.src = `${SHEET_API_URL}?username=${encodeURIComponent(user)}&callback=${callbackName}`;
+  script.onerror = function() {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "🔒 Login";
+    }
+    msgEl.textContent = "Network error. Please check your connection.";
+    msgEl.className = "auth-msg error";
+    msgEl.style.display = 'block';
+    delete window[callbackName];
+  };
+  
+  document.body.appendChild(script);
 }
 
 function loginUser(user){
