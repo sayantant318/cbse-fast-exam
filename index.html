@@ -1035,18 +1035,23 @@ function doLogin() {
         }
 
         if (hashedAttempt === data.passwordHash || pw === data.passwordHash) {
+          
+          // Captures every possible name property variation from Google Sheets
+          const resolvedName = data.fullName || data.name || data.fullname || data.username || "Student";
+
           const sessionData = {
-            fullName: data.fullName,
-            username: data.username,
-            email: data.email,
-            className: data.className,
-            plan: data.plan
+            name: resolvedName,
+            fullName: resolvedName,
+            username: data.username || "",
+            email: data.email || "",
+            className: data.className || data.class || "",
+            plan: data.plan || ""
           };
 
           localStorage.setItem('user_session', JSON.stringify(sessionData));
           
           if (msgEl) {
-            msgEl.textContent = `Welcome, ${data.fullName}!`;
+            msgEl.textContent = `Welcome, ${resolvedName}!`;
             msgEl.className = "auth-msg success";
             msgEl.style.display = 'block';
           }
@@ -1055,7 +1060,6 @@ function doLogin() {
             const authPage = document.getElementById('page-auth');
             const appHeader = document.getElementById('appHeader');
             
-            // Fixed the double .style typo here so it transitions perfectly
             if (authPage) authPage.style.display = 'none';
             if (appHeader) appHeader.style.display = 'block';
             
