@@ -976,7 +976,6 @@ function doSignup(){
 }
 function doLogin() {
   try {
-    // 1. Safe element selectors to prevent silent crashes
     const msgEl = document.getElementById('authMsg');
     if (msgEl) {
       msgEl.textContent = '';
@@ -1005,19 +1004,16 @@ function doLogin() {
       return;
     }
 
-    // 2. Visual loading indicator status
     const btn = document.querySelector("#tab-login .auth-btn") || document.querySelector(".auth-btn");
     if (btn) {
       btn.disabled = true;
       btn.textContent = "Connecting to Sheet...";
     }
 
-    // 3. Create unique JSONP pipeline tracking hook
     const callbackName = 'cb_' + Math.round(100000 * Math.random());
     
     window[callbackName] = function(data) {
       try {
-        // Clean up tracking nodes safely
         delete window[callbackName];
         const scriptTag = document.getElementById(callbackName);
         if (scriptTag) scriptTag.remove();
@@ -1031,7 +1027,6 @@ function doLogin() {
           throw new Error("Invalid username or password configuration.");
         }
 
-        // Safe password verification check wrapper
         let hashedAttempt = pw;
         if (typeof hashPw === 'function') {
           hashedAttempt = hashPw(pw);
@@ -1059,13 +1054,14 @@ function doLogin() {
           setTimeout(() => {
             const authPage = document.getElementById('page-auth');
             const appHeader = document.getElementById('appHeader');
-            if (authPage) authPage.style.style.display = 'none';
+            
+            // Fixed the double .style typo here so it transitions perfectly
+            if (authPage) authPage.style.display = 'none';
             if (appHeader) appHeader.style.display = 'block';
             
             if (typeof applySession === 'function') applySession(sessionData);
             if (typeof showSubjectPage === 'function') showSubjectPage(sessionData);
             
-            // Fallback reload if standard template views are missing
             if (!authPage && !appHeader) {
                alert("Login successful! Redirecting dashboard...");
                location.reload();
@@ -1091,7 +1087,6 @@ function doLogin() {
       }
     };
 
-    // 4. Inject cross-origin execution thread
     const script = document.createElement('script');
     script.id = callbackName;
     script.src = SHEET_API_URL + "?username=" + encodeURIComponent(user) + "&callback=" + callbackName + "&_=" + Date.now();
@@ -1115,7 +1110,6 @@ function doLogin() {
     document.body.appendChild(script);
 
   } catch (globalErr) {
-    // This catches code crashes instantly and shows you the exact error description
     alert("JavaScript Runtime Error: " + globalErr.message);
   }
 }
