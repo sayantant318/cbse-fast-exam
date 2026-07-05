@@ -1117,6 +1117,83 @@ function doLogin() {
     alert("JavaScript Runtime Error: " + globalErr.message);
   }
 }
+
+  // --- AUTO-LOGIN & LOGOUT ENGINE ---
+
+// This event listener executes instantly the second the page finishes loading
+document.addEventListener('DOMContentLoaded', () => {
+  
+  // 1. Auto-Login Verification Pass
+  const savedSession = localStorage.getItem('user_session');
+  if (savedSession) {
+    try {
+      const sessionData = JSON.parse(savedSession);
+      
+      // Verify session integrity before granting automatic entry
+      if (sessionData && (sessionData.username || sessionData.email)) {
+        const authPage = document.getElementById('page-auth');
+        const appHeader = document.getElementById('appHeader');
+        
+        // Hide login card container and open main app dashboard view
+        if (authPage) authPage.style.display = 'none';
+        if (appHeader) appHeader.style.display = 'block';
+        
+        // Populate template text strings using existing core logic anchors
+        if (typeof applySession === 'function') applySession(sessionData);
+        if (typeof showSubjectPage === 'function') showSubjectPage(sessionData);
+      }
+    } catch (err) {
+      console.error("Corrupted session detected, clearing memory...", err);
+      localStorage.removeItem('user_session');
+    }
+  }
+
+  // 2. Dynamic Logout Button Event Handler Hook
+  // Looks for common layout signatures to bind the log-out mechanism securely
+  const logoutBtn = document.getElementById('logoutBtn') || 
+                    document.querySelector('.logout-btn') || 
+                    findLogoutButtonByText();
+                    
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', doLogout);
+  }
+});
+
+// Primary routine to wipe session access tokens and route back to landing gateway
+function doLogout(e) {
+  if (e) e.preventDefault();
+  
+  // Wipe localized device authorization records clean
+  localStorage.removeItem('user_session');
+  
+  const authPage = document.getElementById('page-auth');
+  const appHeader = document.getElementById('appHeader');
+  
+  // Restore interface panel bounds back to baseline login parameters
+  if (authPage) authPage.style.display = 'block';
+  if (appHeader) appHeader.style.display = 'none';
+  
+  const msgEl = document.getElementById('authMsg');
+  if (msgEl) {
+    msgEl.textContent = '';
+    msgEl.style.display = 'none';
+  }
+  
+  // Full clean page reload ensures zero floating memory data escapes
+  location.reload();
+}
+
+// Fallback utility scanner to catch custom button templates without explicit IDs
+function findLogoutButtonByText() {
+  const elements = document.querySelectorAll('button, a');
+  for (let el of elements) {
+    if (el.textContent.trim().toLowerCase() === 'logout') {
+      return el;
+    }
+  }
+  return null;
+}
+  
 function loginUser(user){
   saveSession(user);
   applySession(user);
