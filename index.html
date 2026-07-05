@@ -1193,6 +1193,69 @@ function findLogoutButtonByText() {
   }
   return null;
 }
+
+// --- DYNAMIC QUESTION ENGINE ---
+let currentExamQuestions = []; // Stores live active quiz items globally
+
+// Primary function triggered when a student clicks a subject card selection box
+function chooseSubject(subjectName) {
+  const cleanSubject = subjectName.trim();
+  
+  // 1. Show a loading state on the UI
+  alert(`Loading ${cleanSubject} questions directly from Google Sheet database...`);
+
+  // 2. Build unique JSONP cross-origin network tracking call hook
+  const callbackName = 'cb_quiz_' + Math.round(100000 * Math.random());
+  
+  window[callbackName] = function(data) {
+    try {
+      // Clean up dynamic tracking DOM script attachments securely
+      delete window[callbackName];
+      const scriptTag = document.getElementById(callbackName);
+      if (scriptTag) scriptTag.remove();
+
+      if (!data || data.status !== "success") {
+        throw new Error(data.message || "Failed to retrieve target database rows.");
+      }
+
+      if (data.count === 0) {
+        alert(`No questions found for "${cleanSubject}" in your spreadsheet tab yet. Make sure the 'subject' column values match exactly!`);
+        return;
+      }
+
+      // Save questions globally to run the quiz layout
+      currentExamQuestions = data.questions;
+      
+      // Success confirmation diagnostic hook
+      alert(`Success! Loaded ${data.count} questions for ${cleanSubject}.`);
+      
+      // Launch your exam panel wrapper window here
+      if (typeof startExamSimulator === 'function') {
+         startExamSimulator(cleanSubject);
+      } else {
+         console.log("Database payload loaded successfully. Next step: Connect quiz view container layout.");
+         // Fallback testing logs to verify row mappings in console
+         console.log(currentExamQuestions);
+      }
+
+    } catch (err) {
+      alert("Database error loading questions: " + err.message);
+    }
+  };
+
+  // 3. Inject execution script tag to call the backend Apps Script API
+  const script = document.createElement('script');
+  script.id = callbackName;
+  script.src = SHEET_API_URL + "?subject=" + encodeURIComponent(cleanSubject) + "&callback=" + callbackName + "&_=" + Date.now();
+  
+  script.onerror = function() {
+    alert("Failed to connect to the question server. Check your Web App deployment status.");
+    delete window[callbackName];
+  };
+  
+  document.body.appendChild(script);
+}
+
   
 function loginUser(user){
   saveSession(user);
