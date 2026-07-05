@@ -997,14 +997,14 @@ function doLogin(){
     btn.textContent = "Verifying...";
   }
 
-  // Create a unique temporary global callback function name
-  const callbackName = 'jsonp_login_' + Math.round(100000 * Math.random());
+  // Generate a random dynamic callback name to prevent cross-origin network caching issues
+  const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
   
   window[callbackName] = function(data) {
-    // Cleanup temporary elements safely from memory
+    // Clean up memory signatures instantly
     delete window[callbackName];
-    const targetScript = document.getElementById(callbackName);
-    if(targetScript) targetScript.remove();
+    const scriptTag = document.getElementById(callbackName);
+    if(scriptTag) scriptTag.remove();
 
     if(btn) {
       btn.disabled = false;
@@ -1025,7 +1025,7 @@ function doLogin(){
       return;
     }
 
-    // Match the encrypted password string
+    // Match the hashed parameters
     const hashedAttempt = hashPw(pw);
     if (hashedAttempt === data.passwordHash) {
       const sessionData = {
@@ -1045,12 +1045,16 @@ function doLogin(){
       document.getElementById('loginId').value = '';
       document.getElementById('loginPw').value = '';
       
-      // Instantly load the system panel framework
+      // Multi-routing interface execution pattern
       setTimeout(() => { 
-        document.getElementById('page-auth').style.display = 'none';
-        document.getElementById('appHeader').style.display = 'block';
-        applySession(sessionData);
-        showSubjectPage(sessionData);
+        if (typeof initAuth === 'function') {
+          initAuth();
+        } else {
+          document.getElementById('page-auth').style.display = 'none';
+          document.getElementById('appHeader').style.display = 'block';
+          if (typeof applySession === 'function') applySession(sessionData);
+          if (typeof showSubjectPage === 'function') showSubjectPage(sessionData);
+        }
       }, 800);
       
     } else {
@@ -1060,16 +1064,18 @@ function doLogin(){
     }
   };
 
-  // Inject script to load user credentials cleanly across desktop & mobile channels
+  // Build the live script execution path
   const script = document.createElement('script');
   script.id = callbackName;
-  script.src = `${SHEET_API_URL}?username=${encodeURIComponent(user)}&callback=${callbackName}`;
+  // Dynamic timestamps (_=) force mobile devices to evaluate a brand-new verification handshake every single time
+  script.src = `${SHEET_API_URL}?username=${encodeURIComponent(user)}&callback=${callbackName}&_=${Date.now()}`;
+  
   script.onerror = function() {
     if (btn) {
       btn.disabled = false;
       btn.textContent = "🔒 Login";
     }
-    msgEl.textContent = "Connection error. Make sure your Web App URL is updated.";
+    msgEl.textContent = "Network verification timeout. Verify your API deployment URL.";
     msgEl.className = "auth-msg error";
     msgEl.style.display = 'block';
     delete window[callbackName];
