@@ -997,15 +997,17 @@ function doLogin(){
     btn.textContent = "Verifying...";
   }
 
-  // Generate a random dynamic callback name to prevent cross-origin network caching issues
-  const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
-  
-  window[callbackName] = function(data) {
-    // Clean up memory signatures instantly
-    delete window[callbackName];
-    const scriptTag = document.getElementById(callbackName);
-    if(scriptTag) scriptTag.remove();
-
+  // Uses a clean POST payload to avoid standard cross-origin network filter restrictions
+  fetch(SHEET_API_URL, {
+    method: "POST",
+    mode: "cors",
+    body: JSON.stringify({
+      action: "login",
+      username: user
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
     if(btn) {
       btn.disabled = false;
       btn.textContent = "🔒 Login";
@@ -1025,7 +1027,6 @@ function doLogin(){
       return;
     }
 
-    // Match the hashed parameters
     const hashedAttempt = hashPw(pw);
     if (hashedAttempt === data.passwordHash) {
       const sessionData = {
@@ -1045,16 +1046,11 @@ function doLogin(){
       document.getElementById('loginId').value = '';
       document.getElementById('loginPw').value = '';
       
-      // Multi-routing interface execution pattern
       setTimeout(() => { 
-        if (typeof initAuth === 'function') {
-          initAuth();
-        } else {
-          document.getElementById('page-auth').style.display = 'none';
-          document.getElementById('appHeader').style.display = 'block';
-          if (typeof applySession === 'function') applySession(sessionData);
-          if (typeof showSubjectPage === 'function') showSubjectPage(sessionData);
-        }
+        document.getElementById('page-auth').style.display = 'none';
+        document.getElementById('appHeader').style.display = 'block';
+        if (typeof applySession === 'function') applySession(sessionData);
+        if (typeof showSubjectPage === 'function') showSubjectPage(sessionData);
       }, 800);
       
     } else {
@@ -1062,26 +1058,17 @@ function doLogin(){
       msgEl.className = "auth-msg error";
       msgEl.style.display = 'block';
     }
-  };
-
-  // Build the live script execution path
-  const script = document.createElement('script');
-  script.id = callbackName;
-  // Dynamic timestamps (_=) force mobile devices to evaluate a brand-new verification handshake every single time
-  script.src = `${SHEET_API_URL}?username=${encodeURIComponent(user)}&callback=${callbackName}&_=${Date.now()}`;
-  
-  script.onerror = function() {
+  })
+  .catch(err => {
     if (btn) {
       btn.disabled = false;
       btn.textContent = "🔒 Login";
     }
-    msgEl.textContent = "Network verification timeout. Verify your API deployment URL.";
+    msgEl.textContent = "Connection error. Please log in using an Incognito window.";
     msgEl.className = "auth-msg error";
     msgEl.style.display = 'block';
-    delete window[callbackName];
-  };
-  
-  document.body.appendChild(script);
+    console.error(err);
+  });
 }
 
 function loginUser(user){
