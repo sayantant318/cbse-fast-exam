@@ -895,7 +895,7 @@ function checkStrength(pw){
 function validEmail(e){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
 
 // Paste your copied Web App URL inside the quotation marks below!
-const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbwpPn4exhn5wwKdNvMS0Xmb0t-CK0A3IcleJg3TKqHSUTf0TCKEjK5X0u67Z8P5pDA/exec";
+const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbyM0M3Sb34A7boGqBMhhOq608gIVNo_Av3rOQfZY8aWb1LJmIJy-7zNC1QDCI4BvPGD/exec";
 
 function doSignup(){
   clearAllErrs();
@@ -997,17 +997,14 @@ function doLogin(){
     btn.textContent = "Verifying...";
   }
 
-  // Uses a clean POST payload to avoid standard cross-origin network filter restrictions
-  fetch(SHEET_API_URL, {
-    method: "POST",
-    mode: "cors",
-    body: JSON.stringify({
-      action: "login",
-      username: user
-    })
-  })
-  .then(response => response.json())
-  .then(data => {
+  // Generate a random dynamic callback signature to bypass device browser restrictions
+  const callbackName = 'cb_' + Math.round(100000 * Math.random());
+  
+  window[callbackName] = function(data) {
+    delete window[callbackName];
+    const scriptTag = document.getElementById(callbackName);
+    if(scriptTag) scriptTag.remove();
+
     if(btn) {
       btn.disabled = false;
       btn.textContent = "🔒 Login";
@@ -1015,13 +1012,6 @@ function doLogin(){
 
     if (!data || data.status === "error") {
       msgEl.textContent = "Invalid username or password.";
-      msgEl.className = "auth-msg error";
-      msgEl.style.display = 'block';
-      return;
-    }
-    
-    if (data.accountStatus === "Suspended") {
-      msgEl.textContent = "Account suspended. Contact administration.";
       msgEl.className = "auth-msg error";
       msgEl.style.display = 'block';
       return;
@@ -1058,17 +1048,24 @@ function doLogin(){
       msgEl.className = "auth-msg error";
       msgEl.style.display = 'block';
     }
-  })
-  .catch(err => {
+  };
+
+  const script = document.createElement('script');
+  script.id = callbackName;
+  script.src = SHEET_API_URL + "?username=" + encodeURIComponent(user) + "&callback=" + callbackName + "&_=" + Date.now();
+  
+  script.onerror = function() {
     if (btn) {
       btn.disabled = false;
       btn.textContent = "🔒 Login";
     }
-    msgEl.textContent = "Connection error. Please log in using an Incognito window.";
+    msgEl.textContent = "Connection error. Please try again.";
     msgEl.className = "auth-msg error";
     msgEl.style.display = 'block';
-    console.error(err);
-  });
+    delete window[callbackName];
+  };
+  
+  document.body.appendChild(script);
 }
 
 function loginUser(user){
