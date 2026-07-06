@@ -321,6 +321,8 @@ label{display:block;margin-bottom:6px;font-weight:700;font-size:.9rem;}
     <div>
       <div class="uname" id="userBarName"></div>
       <div class="urole" id="userBarClass"></div>
+      <!-- 🟢 ADD This Line Below to show Expiry Info to the student -->
+    <div id="userBarExpiry" style="font-size: 12px; color: #d93025; margin-top: 4px; font-weight: bold;"></div>
     </div>
     <button class="logout-btn" id="logoutBtn">Logout</button>
   </div>
@@ -1266,6 +1268,28 @@ function loginUser(user){
 
 function applySession(user){
   document.getElementById('userBar').style.display='flex';
+  // 🛑 SECURITY GATE: Check if account is Suspended or Pending administrative approval
+    const currentStatus = (user.status || "Pending").toString().trim().toLowerCase();
+    if (currentStatus === "suspended" || currentStatus === "pending") {
+      alert("❌ Access Denied: Your account is currently suspended or pending administrative approval.");
+      location.reload(); // Kicks them back to the login screen
+      return;
+    }
+
+    // ⏰ AUTOMATIC EXPIRY CHECK: Check if the 30 days have passed
+    const today = new Date();
+    const expiryDate = user.expiryDate && user.expiryDate !== 'N/A' ? new Date(user.expiryDate) : null;
+    
+    if (expiryDate && today > expiryDate) {
+      alert("⏰ Plan Expired: Your 30-day access has ended. Please use the payment section below to renew your plan!");
+      // Automatically open the payment instructions for them
+      setTimeout(() => { if(typeof showPaymentInstructions === 'function') showPaymentInstructions(); }, 500);
+    }
+
+    // Display the expiration date in the user profile bar
+    if (document.getElementById('userBarExpiry')) {
+      document.getElementById('userBarExpiry').innerText = "📅 Access Valid Until: " + (user.expiryDate || "N/A");
+    }
   document.getElementById('userBarName').textContent = '👤 '+user.name;
   document.getElementById('userBarClass').textContent = user.cls || user.email;
 }
