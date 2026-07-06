@@ -286,6 +286,33 @@ label{display:block;margin-bottom:6px;font-weight:700;font-size:.9rem;}
   </div>
 </div>
 
+<div class="plan-container" style="max-width: 450px; margin: 20px auto; padding: 25px; background: #ffffff; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.06); text-align: center; border: 1px solid #eef2f6; font-family: Arial, sans-serif;">
+  <span style="background: #e8f0fe; color: #1a73e8; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">Premium Access</span>
+  <h3 style="margin: 15px 0 5px 0; color: #202124; font-size: 22px;">Student Study Plan</h3>
+  <p style="color: #5f6368; font-size: 14px; margin-bottom: 15px;">Get full access to all subjects and study materials</p>
+  
+  <div style="margin: 20px 0; background: #f8f9fa; padding: 15px; border-radius: 8px;">
+    <span style="font-size: 32px; font-weight: bold; color: #1a73e8;">Rs 49</span>
+    <span style="color: #5f6368; font-size: 14px;"> / 30 Days</span>
+  </div>
+
+  <button class="buy-plan-btn" onclick="showPaymentInstructions()" style="width: 100%; padding: 14px; background: #1a73e8; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s; box-shadow: 0 2px 5px rgba(26,115,232,0.25);">
+    🛒 Buy Plan Now
+  </button>
+
+  <div id="paymentInstructionsBox" style="display: none; margin-top: 20px; padding: 15px; background: #fff8e1; border: 1px solid #ffe082; border-radius: 8px; text-align: left; animation: fadeIn 0.3s ease;">
+    <h4 style="color: #b06000; margin-bottom: 8px; font-size: 14px;">👋 Next Steps for Payment:</h4>
+    <p style="color: #5f6368; font-size: 13px; line-height: 1.5; margin-bottom: 10px;">
+      1. Open your preferred UPI application (GPay, PhonePe, Paytm).<br>
+      2. Pay <strong>Rs 49</strong> to our secure UPI address: <code id="upiPlaceholder" style="background:#fff; padding:2px 6px; border-radius:4px; font-weight:bold; color:#1a73e8;">(UPI details coming soon)</code>
+    </p>
+    <div style="font-size: 12px; color: #d93025; background: #fce8e6; padding: 10px; border-radius: 6px; font-weight: 500; line-height: 1.4;">
+      ⚠️ <strong>Important Notice:</strong> After done payment send payment details screenshot with Your name and user name to <a href="mailto:talukdarc80@gmail.com" style="color: #c5221f; font-weight: bold;">talukdarc80@gmail.com</a>
+    </div>
+  </div>
+</div>
+
+  
 <!-- ===== HEADER ===== -->
 <div class="app-header" id="appHeader" style="display:none;">
   <h1>📚 CBSE Class 10</h1>
@@ -1775,6 +1802,18 @@ function initApp(){
 document.addEventListener('DOMContentLoaded', () => {
     loadQuestionsFromGoogleSheets();
 });
+
+function showPaymentInstructions() {
+  const instructionsBox = document.getElementById('paymentInstructionsBox');
+  if (instructionsBox) {
+    if (instructionsBox.style.display === 'none' || instructionsBox.style.display === '') {
+      instructionsBox.style.display = 'block';
+    } else {
+      instructionsBox.style.display = 'none';
+    }
+  }
+}
+  
 </script>
 </body>
 </html>
