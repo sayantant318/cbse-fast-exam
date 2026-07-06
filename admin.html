@@ -1,1 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>System Administration Panel</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background: #f4f6f9; color: #333; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+    
+    .container { width: 100%; max-width: 1200px; display: none; }
+    .container.active { display: block; }
+    
+    /* Login Card Design */
+    .login-card { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
+    .login-card h1 { color: #1a73e8; margin-bottom: 10px; font-size: 24px; }
+    .login-card p { color: #666; font-size: 14px; margin-bottom: 25px; }
+    .form-group { text-align: left; margin-bottom: 20px; }
+    .form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #444; }
+    .form-group input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; outline: none; }
+    .form-group input:focus { border-color: #1a73e8; box-shadow: 0 0 0 3px rgba(26,115,232,0.1); }
+    
+    /* Dashboard Card Design */
+    .dashboard-card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.05); }
+    .dash-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #eee; }
+    .dash-header h2 { color: #1a73e8; }
+    
+    /* Global Buttons */
+    .btn { width: 100%; padding: 12px; background: #1a73e8; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+    .btn:hover { background: #1557b5; }
+    .btn-logout { background: #5f6368; padding: 8px 16px; width: auto; font-size: 14px; }
+    .btn-logout:hover { background: #474a4d; }
+    
+    /* Table styling */
+    .table-wrapper { overflow-x: auto; margin-top: 20px; }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th { background: #1a73e8; color: white; padding: 14px; font-size: 14px; font-weight: 600; border: 1px solid #ddd; }
+    td { padding: 14px; font-size: 14px; border: 1px solid #ddd; vertical-align: middle; }
+    tr:nth-child(even) { background: #f9fbfd; }
+    
+    /* Badges */
+    .badge { padding: 5px 10px; border-radius: 20px; font-weight: bold; font-size: 12px; display: inline-block; text-transform: uppercase; }
+    .badge-active { background: #e6f4ea; color: #137333; }
+    .badge-pending { background: #fef7e0; color: #b06000; }
+    .badge-suspended { background: #fce8e6; color: #c5221f; }
+    
+    /* Action Buttons */
+    .action-btn { border: none; padding: 6px 12px; font-size: 12px; font-weight: 600; border-radius: 4px; cursor: pointer; margin-right: 4px; color: white; transition: opacity 0.2s; }
+    .action-btn:hover { opacity: 0.9; }
+    .act-approve { background: #137333; }
+    .act-extend { background: #1a73e8; }
+    .act-suspend { background: #c5221f; }
+  </style>
+</head>
+<body>
 
+  <div id="adminLoginSection" class="login-card">
+    <h1>Admin Portal</h1>
+    <p>Sign in to manage student permissions</p>
+    
+    <div class="form-group">
+      <label for="admUser">Username</label>
+      <input type="text" id="admUser" placeholder="Enter admin username" value="admin">
+    </div>
+    
+    <div class="form-group">
+      <label for="admPass">Password</label>
+      <input type="password" id="admPass" placeholder="Enter security password">
+    </div>
+    
+    <button class="btn" onclick="verifyAdminLogin()">Secure Login</button>
+  </div>
+
+  <div id="adminDashboardSection" class="container">
+    <div class="dashboard-card">
+      <div class="dash-header">
+        <h2>System Administration Dashboard</h2>
+        <button class="btn btn-logout" onclick="location.reload()">Logout Panel</button>
+      </div>
+      
+      <p style="color: #666; font-size: 14px; margin-bottom: 10px;">
+        Monitor real-time system accounts, update student statuses, or grant access cycle extensions below:
+      </p>
+      
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Student Name</th>
+              <th>Username</th>
+              <th>Email Address</th>
+              <th>Assigned Class</th>
+              <th>Current Status</th>
+              <th>Access Expiry Date</th>
+              <th>Administrative Control Controls</th>
+            </tr>
+          </thead>
+          <tbody id="adminStudentRows">
+            <tr>
+              <td colspan="7" style="text-align: center; padding: 30px; color: #777;">Loading registration profiles...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ============================================================
+    // CRITICAL CONFIGURATION: PASTE YOUR GOOGLE WEB APP URL HERE
+    // ============================================================
+    const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbz4eWRike7HapiMlQMMS7JWFUjASj-iOIWCwNKNMjmlzZ_8yNpgV-MQJSOOBZI0yPrU/exec";
+
+    // Handle Enter key inside password form field
+    document.getElementById('admPass').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') verifyAdminLogin();
+    });
+
+    function verifyAdminLogin() {
+      const user = document.getElementById('admUser').value.trim();
+      const pass = document.getElementById('admPass').value;
+
+      // Simple, secure hardcoded password for administrative bypass
+      if (user.toLowerCase() === "admin" && pass === "admin123") {
+        document.getElementById('adminLoginSection').style.display = 'none';
+        
+        const dash = document.getElementById('adminDashboardSection');
+        dash.classList.add('active');
+        
+        loadAdminDashboard();
+      } else {
+        alert("❌ Unauthorized access attempt. Invalid administration credentials.");
+      }
+    }
+
+    function loadAdminDashboard() {
+      const tbody = document.getElementById('adminStudentRows');
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 20px;">Fetching records from database...</td></tr>`;
+
+      const callbackName = 'cb_admin_' + Math.round(100000 * Math.random());
+      window[callbackName] = function(res) {
+        try {
+          delete window[callbackName];
+          document.getElementById(callbackName).remove();
+          
+          if (res.status !== "success") return alert("Error fetching data rows from spreadsheet backend.");
+          
+          tbody.innerHTML = "";
+          
+          if(res.users.length === 0 || (res.users.length === 1 && res.users[0].username === "admin")) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 20px; color: #999;">No registered student records found.</td></tr>`;
+            return;
+          }
+
+          res.users.forEach(u => {
+            if (u.username.toLowerCase() === "admin") return; // Skip showing admin identity row
+            
+            // Format state badges beautifully based on entry matching strings
+            const statusClean = (u.status || "Pending").toString().trim().toLowerCase();
+            let badgeClass = "badge-pending";
+            if (statusClean === "active") badgeClass = "badge-active";
+            if (statusClean === "suspended") badgeClass = "badge-suspended";
+            
+            tbody.innerHTML += `
+              <tr>
+                <td><strong>${u.fullName}</strong></td>
+                <td><code>${u.username}</code></td>
+                <td>${u.email}</td>
+                <td>${u.className}</td>
+                <td><span class="badge ${badgeClass}">${u.status || 'Pending'}</span></td>
+                <td>${u.expiryDate || 'N/A'}</td>
+                <td>
+                  <button class="action-btn act-approve" onclick="modifyAccount('${u.username}', 'Active', '${u.expiryDate}', false)">Approve</button>
+                  <button class="action-btn act-extend" onclick="modifyAccount('${u.username}', 'Active', '${u.expiryDate}', true)">+1 Month</button>
+                  <button class="action-btn act-suspend" onclick="modifyAccount('${u.username}', 'Suspended', '${u.expiryDate}', false)">Suspend</button>
+                </td>
+              </tr>
+            `;
+          });
+        } catch(e) { alert("Dashboard rendering crash: " + e.message); }
+      };
+      
+      const scr = document.createElement('script');
+      scr.id = callbackName;
+      scr.src = SHEET_API_URL + "?action=getAllUsers&callback=" + callbackName + "&_" + Date.now();
+      document.body.appendChild(scr);
+    }
+
+    function modifyAccount(userKey, targetStatus, currentExpDate, isExtension) {
+      let newDateStr = currentExpDate;
+      
+      if (isExtension) {
+        let baseDate = new Date();
+        // If they already possess active space into the future, extend starting from that point
+        if (currentExpDate && new Date(currentExpDate) > baseDate) {
+          baseDate = new Date(currentExpDate);
+        }
+        baseDate.setMonth(baseDate.getMonth() + 1);
+        newDateStr = baseDate.getFullYear() + "-" + ("0" + (baseDate.getMonth() + 1)).slice(-2) + "-" + ("0" + baseDate.getDate()).slice(-2);
+      }
+      
+      // Post structural updates directly to your Apps Script Web App
+      fetch(SHEET_API_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "updateUser",
+          username: userKey,
+          status: targetStatus,
+          expiryDate: newDateStr
+        })
+      }).then(() => {
+        alert(`Account parameters successfully altered for user "${userKey}"!`);
+        loadAdminDashboard(); // Clean refresh row elements
+      }).catch(err => alert("Transmission fault: " + err.message));
+    }
+  </script>
+</body>
+</html>
