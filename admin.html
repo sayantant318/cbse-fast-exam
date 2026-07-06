@@ -156,31 +156,45 @@
             return;
           }
 
-          res.users.forEach(u => {
-            if (u.username.toLowerCase() === "admin") return; // Skip showing admin identity row
-            
-            // Format state badges beautifully based on entry matching strings
-            const statusClean = (u.status || "Pending").toString().trim().toLowerCase();
-            let badgeClass = "badge-pending";
-            if (statusClean === "active") badgeClass = "badge-active";
-            if (statusClean === "suspended") badgeClass = "badge-suspended";
-            
-            tbody.innerHTML += `
-              <tr>
-                <td><strong>${u.fullName}</strong></td>
-                <td><code>${u.username}</code></td>
-                <td>${u.email}</td>
-                <td>${u.className}</td>
-                <td><span class="badge ${badgeClass}">${u.status || 'Pending'}</span></td>
-                <td>${u.expiryDate || 'N/A'}</td>
-                <td>
-                  <button class="action-btn act-approve" onclick="modifyAccount('${u.username}', 'Active', '${u.expiryDate}', false)">Approve</button>
-                  <button class="action-btn act-extend" onclick="modifyAccount('${u.username}', 'Active', '${u.expiryDate}', true)">+1 Month</button>
-                  <button class="action-btn act-suspend" onclick="modifyAccount('${u.username}', 'Suspended', '${u.expiryDate}', false)">Suspend</button>
-                </td>
-              </tr>
-            `;
-          });
+res.users.forEach(u => {
+  if (u.username.toLowerCase() === "admin") return; 
+  
+  const statusClean = (u.status || "Pending").toString().trim().toLowerCase();
+  const today = new Date();
+  const expDate = u.expiryDate && u.expiryDate !== 'N/A' ? new Date(u.expiryDate) : null;
+  
+  let badgeClass = "badge-pending";
+  let displayStatus = u.status || 'Pending';
+  
+  // Automatically flag if the 30 days have run out
+  if (statusClean === "active") {
+    if (expDate && today > expDate) {
+      badgeClass = "badge-suspended";
+      displayStatus = "Expired ⏰";
+    } else {
+      badgeClass = "badge-active";
+    }
+  } else if (statusClean === "suspended") {
+    badgeClass = "badge-suspended";
+  }
+  
+  tbody.innerHTML += `
+    <tr>
+      <td><strong>${u.fullName}</strong></td>
+      <td><code>${u.username}</code></td>
+      <td>${u.email}</td>
+      <td>${u.className}</td>
+      <td><span class="badge ${badgeClass}">${displayStatus}</span></td>
+      <td>${u.expiryDate || 'N/A'}</td>
+      <td>
+        <button class="action-btn act-approve" onclick="modifyAccount('${u.username}', 'Active', '${u.expiryDate}', false)">Approve</button>
+        <button class="action-btn act-extend" onclick="modifyAccount('${u.username}', 'Active', '${u.expiryDate}', true)">+1 Month</button>
+        <button class="action-btn act-suspend" onclick="modifyAccount('${u.username}', 'Suspended', '${u.expiryDate}', false)">Suspend</button>
+      </td>
+    </tr>
+  `;
+});
+          
         } catch(e) { alert("Dashboard rendering crash: " + e.message); }
       };
       
@@ -190,35 +204,41 @@
       document.body.appendChild(scr);
     }
 
-    function modifyAccount(userKey, targetStatus, currentExpDate, isExtension) {
-      let newDateStr = currentExpDate;
-      
-      if (isExtension) {
-        let baseDate = new Date();
-        // If they already possess active space into the future, extend starting from that point
-        if (currentExpDate && new Date(currentExpDate) > baseDate) {
-          baseDate = new Date(currentExpDate);
-        }
-        baseDate.setMonth(baseDate.getMonth() + 1);
-        newDateStr = baseDate.getFullYear() + "-" + ("0" + (baseDate.getMonth() + 1)).slice(-2) + "-" + ("0" + baseDate.getDate()).slice(-2);
+function modifyAccount(userKey, targetStatus, currentExpDate, isExtension) {
+  let newDateStr = currentExpDate;
+  
+  if (targetStatus === 'Active') {
+    let baseDate = new Date();
+    if (isExtension) {
+      // +1 Month Extension logic: Add to existing expiry if it's in the future, otherwise add to today
+      if (currentExpDate && currentExpDate !== 'N/A' && new Date(currentExpDate) > baseDate) {
+        baseDate = new Date(currentExpDate);
       }
-      
-      // Post structural updates directly to your Apps Script Web App
-      fetch(SHEET_API_URL, {
-        method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "updateUser",
-          username: userKey,
-          status: targetStatus,
-          expiryDate: newDateStr
-        })
-      }).then(() => {
-        alert(`Account parameters successfully altered for user "${userKey}"!`);
-        loadAdminDashboard(); // Clean refresh row elements
-      }).catch(err => alert("Transmission fault: " + err.message));
+      baseDate.setMonth(baseDate.getMonth() + 1);
+    } else {
+      // Fresh Approval: Set exactly 30 days from right now
+      baseDate.setDate(baseDate.getDate() + 30);
     }
+    // Format to YYYY-MM-DD
+    newDateStr = baseDate.getFullYear() + "-" + ("0" + (baseDate.getMonth() + 1)).slice(-2) + "-" + ("0" + baseDate.getDate()).slice(-2);
+  }
+  
+  // Send updates to Google Apps Script
+  fetch(SHEET_API_URL, {
+    method: "POST",
+    mode: "no-cors",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "updateUser",
+      username: userKey,
+      status: targetStatus,
+      expiryDate: newDateStr
+    })
+  }).then(() => {
+    alert(`Account successfully updated for user "${userKey}"!`);
+    loadAdminDashboard(); // Refresh table rows
+  }).catch(err => alert("Transmission fault: " + err.message));
+}
 
 function filterStudents() {
   const input = document.getElementById("adminSearchInput");
