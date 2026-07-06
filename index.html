@@ -1077,7 +1077,23 @@ function doLogin() {
             plan: data.plan || ""
           };
 
-          localStorage.setItem('user_session', JSON.stringify(sessionData));
+          // 🟢 Save ALL user info (including security & expiry details) into local browser memory
+        localStorage.setItem('userSession', JSON.stringify({
+            name: matchingUser.fullName,
+            email: matchingUser.email,
+            cls: matchingUser.className,
+            expiryDate: matchingUser.expiryDate,       // 📅 Saves expiry date to memory
+            accountStatus: matchingUser.accountStatus  // 🛑 Saves status to memory
+        }));
+
+        // 🟢 Pass ALL details to your dashboard handler instantly
+        applySession({
+            name: matchingUser.fullName,
+            email: matchingUser.email,
+            cls: matchingUser.className,
+            expiryDate: matchingUser.expiryDate,       // 📅 Passes expiry date to header
+            accountStatus: matchingUser.accountStatus  // 🛑 Passes status to security gate
+        });
           
           if (msgEl) {
             msgEl.textContent = `Welcome, ${resolvedName}!`;
