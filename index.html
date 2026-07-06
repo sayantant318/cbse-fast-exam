@@ -1056,21 +1056,56 @@ function doLogin() {
             msgEl.style.display = 'block';
           }
 
-          setTimeout(() => {
-            const authPage = document.getElementById('page-auth');
-            const appHeader = document.getElementById('appHeader');
-            
-            if (authPage) authPage.style.display = 'none';
-            if (appHeader) appHeader.style.display = 'block';
-            
-            if (typeof applySession === 'function') applySession(sessionData);
-            if (typeof showSubjectPage === 'function') showSubjectPage(sessionData);
-            
-            if (!authPage && !appHeader) {
-               alert("Login successful! Redirecting dashboard...");
-               location.reload();
-            }
-          }, 800);
+      setTimeout(() => {
+  // 1. ALWAYS ALLOW THE ADMIN PANEL FIRST
+  if (data.username === "admin") {
+    const authPage = document.getElementById('page-auth');
+    if (authPage) authPage.style.display = 'none';
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-admin').classList.add('active');
+    loadAdminDashboard();
+    return;
+  }
+
+  // 2. CHECK STATUS: IF SUSPENDED
+  if (data.accountStatus === "Suspended") {
+    alert("❌ Your plan has expired or your account is suspended. Please contact the administrator.");
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "🔒 Login";
+    }
+    return; // Stops login completely
+  }
+
+  // 3. CHECK STATUS: IF PENDING
+  if (data.accountStatus === "Pending") {
+    alert("⏳ Your account setup is pending. Please wait for some time for approval.");
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "🔒 Login";
+    }
+    return; // Stops login completely
+  }
+
+  // 4. CHECK STATUS: IF ACTIVE -> ALLOW ENTERING THE APP
+  if (data.accountStatus === "Active") {
+    const authPage = document.getElementById('page-auth');
+    const appHeader = document.getElementById('appHeader');
+
+    if (authPage) authPage.style.display = 'none';
+    if (appHeader) appHeader.style.display = 'block';
+
+    if (typeof applySession === 'function') applySession(sessionData);
+    if (typeof showSubjectPage === 'function') showSubjectPage(sessionData);
+  } else {
+    // Catch-all for any typing error in the sheet status column
+    alert("Unknown account status. Please contact support.");
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "🔒 Login";
+    }
+  }
+}, 600);
 
         } else {
           throw new Error("Invalid username or password.");
