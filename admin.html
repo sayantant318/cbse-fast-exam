@@ -81,6 +81,10 @@
       <p style="color: #666; font-size: 14px; margin-bottom: 10px;">
         Monitor real-time system accounts, update student statuses, or grant access cycle extensions below:
       </p>
+
+<div style="margin-top: 15px; margin-bottom: 5px; text-align: left;">
+  <input type="text" id="adminSearchInput" onkeyup="filterStudents()" placeholder="🔍 Search student by name or username..." style="width: 100%; max-width: 350px; padding: 10px 15px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='#1a73e8'" onblur="this.style.borderColor='#ccc'">
+</div>
       
       <div class="table-wrapper">
         <table>
@@ -215,6 +219,34 @@
         loadAdminDashboard(); // Clean refresh row elements
       }).catch(err => alert("Transmission fault: " + err.message));
     }
+
+function filterStudents() {
+  const input = document.getElementById("adminSearchInput");
+  const filter = input.value.toLowerCase().trim();
+  const tbody = document.getElementById("adminStudentRows");
+  const rows = tbody.getElementsByTagName("tr");
+
+  for (let i = 0; i < rows.length; i++) {
+    // If it's a message row like "Loading data..." (colspan row), skip filtering it
+    if (rows[i].cells.length < 2) continue;
+
+    const nameCell = rows[i].cells[0]; // Column 1: Student Name
+    const usernameCell = rows[i].cells[1]; // Column 2: Username
+
+    if (nameCell || usernameCell) {
+      const nameText = nameCell.textContent || nameCell.innerText;
+      const usernameText = usernameCell.textContent || usernameCell.innerText;
+
+      // Check if either the name or username matches what the admin typed
+      if (nameText.toLowerCase().indexOf(filter) > -1 || usernameText.toLowerCase().indexOf(filter) > -1) {
+        rows[i].style.display = ""; // Show row
+      } else {
+        rows[i].style.display = "none"; // Hide row
+      }
+    }
+  }
+}
+    
   </script>
 </body>
 </html>
