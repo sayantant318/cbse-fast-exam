@@ -1267,36 +1267,35 @@ function loginUser(user){
 }
 
 function applySession(user){
-  document.getElementById('userBar').style.display='flex';
- // 🛑 SECURITY GATE: Check status (Defaults to "active" if the column isn't mapped yet to prevent lockouts)
-    const currentStatus = (user.status || user.Status || "active").toString().trim().toLowerCase();
+    document.getElementById('userBar').style.display='flex';
+    
+    // 🛑 Read accountStatus straight from your code.gs response parameters
+    const currentStatus = (user.accountStatus || user.status || "Active").toString().trim().toLowerCase();
     
     if (currentStatus === "suspended" || currentStatus === "pending") {
       alert("❌ Access Denied: Your account is currently suspended or pending administrative approval.");
-      
-      // 🧼 Clear saved credentials first to instantly break the infinite reload loop!
       localStorage.clear();
       sessionStorage.clear();
-      
-      location.reload(); 
+      location.reload();
       return;
     }
 
-    // ⏰ AUTOMATIC EXPIRY CHECK
+    // ⏰ Read expiryDate straight from your updated column J data mapping
     const today = new Date();
-    const expiryDate = (user.expiryDate || user.ExpiryDate) && (user.expiryDate !== 'N/A') ? new Date(user.expiryDate || user.ExpiryDate) : null;
+    const expiryStr = user.expiryDate || user.ExpiryDate;
+    const expiryDate = expiryStr && expiryStr !== 'N/A' ? new Date(expiryStr) : null;
     
     if (expiryDate && today > expiryDate) {
       alert("⏰ Plan Expired: Your 30-day access has ended. Please use the payment section below to renew your plan!");
       setTimeout(() => { if(typeof showPaymentInstructions === 'function') showPaymentInstructions(); }, 500);
     }
 
-    // Display expiration safely if the UI element exists
     if (document.getElementById('userBarExpiry')) {
-      document.getElementById('userBarExpiry').innerText = "📅 Access Valid Until: " + (user.expiryDate || user.ExpiryDate || "N/A");
+      document.getElementById('userBarExpiry').innerText = "📅 Access Valid Until: " + (expiryStr || "N/A");
     }
-  document.getElementById('userBarName').textContent = '👤 '+user.name;
-  document.getElementById('userBarClass').textContent = user.cls || user.email;
+
+    document.getElementById('userBarName').textContent = '👤 '+user.name;
+    document.getElementById('userBarClass').textContent = user.cls || user.email;
 }
 
 function setupLogout(){
